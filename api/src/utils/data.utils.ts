@@ -293,11 +293,12 @@ export function constructQueryPrompt(
   const context_string =
     prompt_context ||
     `The provided contexts are from Lamden's blog. 
-    Give at least 5 paragraphs in your answer.
+    Answer with as much content as you can.
+    Answer as truthfully as possible, if you're not sure, say "I don't know".
 	Use an excited tone !
     `;
   const prompt = `${context_string}
-						Context : ${createContextsStringUnderMaxTokenSize(relevant_contexts, 3000)}
+						Context : ${createContextsStringUnderMaxTokenSize(relevant_contexts, 2000)}
                         Q: ${statement}
                         A: `;
   return prompt;
@@ -330,7 +331,7 @@ export async function getCompletion(complete_prompt) {
     return await openai.createCompletion({
       prompt: complete_prompt,
       max_tokens: 2000,
-      temperature: 0.3,
+      temperature: 0,
       // top_p: 0.1,
       presence_penalty: 0,
       model: COMPLETIONS_MODEL,
@@ -417,7 +418,7 @@ export async function askQuestion(question: string, prompt_context: string) {
     prompt_context,
   );
   const response: any = await getCompletion(query_prompt);
-  console.log({choices: response.data.choices})
+  console.log({ choices: response.data.choices });
   return response.data.choices[0];
 }
 
