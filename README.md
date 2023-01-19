@@ -2,6 +2,8 @@
 
 Simple application based on the "short-shot training" tutorial : `https://github.com/openai/openai-cookbook/blob/main/examples/Question_answering_using_embeddings.ipynb`
 
+Currently this application just consumes data from the Lamden medium publication, but it can easily be modified to work with any medium pub.
+
 ### Get started.
 
 * Ensure you have PM2 & Nodejs / npm installed on your machine.
