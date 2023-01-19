@@ -25,4 +25,4 @@ module.exports = {
 };
 ```
 * Run `pm2 start ecosystem.config.js` from the project root.
-* Interact with the application by navigating to localhost:3000/api/
+* Interact with the application by navigating to `http://localhost:3000/api/`
