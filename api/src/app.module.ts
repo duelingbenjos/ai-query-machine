@@ -7,7 +7,7 @@ import { AppService } from './app.service';
   imports: [
     ThrottlerModule.forRoot({
       ttl: 60,
-      limit: 100,
+      limit: 3,
     }),
   ],
   controllers: [AppController],
