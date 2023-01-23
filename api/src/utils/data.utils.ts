@@ -301,7 +301,7 @@ export function constructQueryPrompt(
     Don't mention: "Shardus"
     `;
   const prompt = `${instructions}
-						Context : ${createContextsStringUnderMaxTokenSize(relevant_contexts, 2500)}
+						Context : ${createContextsStringUnderMaxTokenSize(relevant_contexts, 2300)}
                         Q: ${question}
                         A: `;
   return prompt;
