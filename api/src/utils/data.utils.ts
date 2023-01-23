@@ -1,7 +1,8 @@
 import { Configuration, OpenAIApi } from 'openai';
 import axios from 'axios';
 import * as fs from 'fs';
-// import similarity from 'compute-cosine-similarity';
+import config from '../dev.config';
+import { saveQuery } from '../entities/query.entity';
 const similarity = require('compute-cosine-similarity');
 
 async function getArticleIdListFromMedium(from: string) {
@@ -10,7 +11,7 @@ async function getArticleIdListFromMedium(from: string) {
     url: 'https://medium2.p.rapidapi.com/publication/38c93280fee/articles',
     params: { from },
     headers: {
-      'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
+      'X-RapidAPI-Key': process.env.RAPIDAPI_KEY || config.RAPIDAPI_KEY,
       'X-RapidAPI-Host': 'medium2.p.rapidapi.com',
     },
   };
@@ -95,7 +96,7 @@ export async function getArticleContent(
     method: 'GET',
     url: `https://medium2.p.rapidapi.com/article/${article_id}/content`,
     headers: {
-      'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
+      'X-RapidAPI-Key': process.env.RAPIDAPI_KEY || config.RAPIDAPI_KEY,
       'X-RapidAPI-Host': 'medium2.p.rapidapi.com',
     },
   };
@@ -115,7 +116,7 @@ export async function getArticleInfo(
     method: 'GET',
     url: `https://medium2.p.rapidapi.com/article/${article_id}`,
     headers: {
-      'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
+      'X-RapidAPI-Key': process.env.RAPIDAPI_KEY || config.RAPIDAPI_KEY,
       'X-RapidAPI-Host': 'medium2.p.rapidapi.com',
     },
   };
@@ -205,8 +206,8 @@ export async function createEmbedding(
  */
 
 export const configuration = new Configuration({
-  organization: process.env.OPENAI_ORG,
-  apiKey: process.env.OPENAI_API_KEY,
+  organization: process.env.OPENAI_ORG || config.OPENAI_ORG,
+  apiKey: process.env.OPENAI_API_KEY || config.OPENAI_API_KEY,
 });
 
 const openai = new OpenAIApi(configuration);
@@ -286,7 +287,7 @@ export async function orderDocumentSectionsByQuerySimilarity(
 }
 
 export function constructQueryPrompt(
-  statement: string,
+  question: string,
   relevant_contexts: I_Context[],
   prompt_context: string,
 ) {
@@ -294,12 +295,12 @@ export function constructQueryPrompt(
     prompt_context ||
     `The provided contexts are from Lamden's blog. 
     Answer with as much content as you can.
-    Answer as truthfully as possible, if you're not sure, say "I don't know".
-	Use an excited tone !
+    Answer as truthfully as possible.
+	  Use an excited tone !
     `;
   const prompt = `${context_string}
 						Context : ${createContextsStringUnderMaxTokenSize(relevant_contexts, 2000)}
-                        Q: ${statement}
+                        Q: ${question}
                         A: `;
   return prompt;
 }
@@ -323,19 +324,9 @@ function createContextsStringUnderMaxTokenSize(
   return context_string;
 }
 
-export async function getCompletion(complete_prompt) {
-  const COMPLETIONS_MODEL = 'text-davinci-002';
-
-  // console.log(complete_prompt);
+export async function getCompletion(options: any) {
   try {
-    return await openai.createCompletion({
-      prompt: complete_prompt,
-      max_tokens: 2000,
-      temperature: 0,
-      // top_p: 0.1,
-      presence_penalty: 0,
-      model: COMPLETIONS_MODEL,
-    });
+    return await openai.createCompletion(options);
   } catch (err: any) {
     console.log(err.message);
     throw err;
@@ -417,8 +408,24 @@ export async function askQuestion(question: string, prompt_context: string) {
     ordered_contexts.slice(0, 5),
     prompt_context,
   );
-  const response: any = await getCompletion(query_prompt);
+  const options = {
+    prompt: query_prompt,
+    max_tokens: 2000,
+    temperature: 0.3,
+    // top_p: 0.1,
+    presence_penalty: 0,
+    model: COMPLETIONS_MODEL,
+  };
+  const response: any = await getCompletion(options);
   console.log({ choices: response.data.choices });
+
+  await saveQuery(
+    question,
+    contexts,
+    response.data.choices[0]?.text,
+    response.data.choices,
+    options,
+  );
   return response.data.choices[0];
 }
 

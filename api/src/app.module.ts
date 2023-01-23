@@ -1,13 +1,21 @@
 import { Module } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { QueryResponseEntity } from './entities/query.entity';
 
 @Module({
   imports: [
     ThrottlerModule.forRoot({
       ttl: 60,
-      limit: 3,
+      limit: 10,
+    }),
+    TypeOrmModule.forRoot({
+      type: 'sqlite',
+      database: 'test.sqlite',
+      entities: [QueryResponseEntity],
+      synchronize: true,
     }),
   ],
   controllers: [AppController],
