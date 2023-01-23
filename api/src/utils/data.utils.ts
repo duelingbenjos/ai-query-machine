@@ -183,7 +183,7 @@ export function writeJsonToFile(json: any) {
   fs.writeFileSync('../data/medium_articles.json', data);
 }
 
-const COMPLETIONS_MODEL = 'text-davinci-002';
+const COMPLETIONS_MODEL = 'text-davinci-003';
 const DOC_EMBEDDINGS_MODEL = 'curie-search-document';
 const QUERY_EMBEDDING_MODEL = `curie-search-query`;
 
@@ -324,6 +324,7 @@ function createContextsStringUnderMaxTokenSize(
     if ((context_string.length + content.length) / 4 > max_token_size) {
       complete_context =
         complete_context.slice(0, 1800 * 4) + `\n\n CONTEXT_URL : ${url}  \n\n`;
+      console.log({ complete_context });
       return complete_context;
     }
     context_string += content + `\n\n CONTEXT_URL : ${url}  \n\n`;
