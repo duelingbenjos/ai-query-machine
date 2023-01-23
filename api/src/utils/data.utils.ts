@@ -291,16 +291,17 @@ export function constructQueryPrompt(
   relevant_contexts: I_Context[],
   prompt_context: string,
 ) {
-  const context_string =
+  const instructions =
     prompt_context ||
     `Use the provided context to construct your answer.
     Be poetic, and funny if possible. 
     Answer with as much content as you can.
     Answer as truthfully as possible.
 	  Use an excited tone !
+    Don't mention: "Shardus"
     `;
-  const prompt = `${context_string}
-						Context : ${createContextsStringUnderMaxTokenSize(relevant_contexts, 2000)}
+  const prompt = `${instructions}
+						Context : ${createContextsStringUnderMaxTokenSize(relevant_contexts, 2500)}
                         Q: ${question}
                         A: `;
   return prompt;
@@ -317,11 +318,11 @@ function createContextsStringUnderMaxTokenSize(
     const approx_tokens = context_string.length / 4;
     context_string += '\n';
     if ((context_string.length + content.length) / 4 > max_token_size) {
-      return;
+      return context_string;
     }
     context_string += content;
   }
-  console.log(context_string);
+  console.log({context_string});
   return context_string;
 }
 
@@ -404,6 +405,7 @@ export async function askQuestion(question: string, prompt_context: string) {
     question,
     contexts,
   );
+  console.log(ordered_contexts.slice(0, 5));
   const query_prompt = constructQueryPrompt(
     question,
     ordered_contexts.slice(0, 5),
@@ -412,7 +414,7 @@ export async function askQuestion(question: string, prompt_context: string) {
   const options = {
     prompt: query_prompt,
     max_tokens: 2000,
-    temperature: 0.3,
+    temperature: 0.4,
     // top_p: 0.1,
     presence_penalty: 0,
     model: COMPLETIONS_MODEL,
@@ -422,7 +424,7 @@ export async function askQuestion(question: string, prompt_context: string) {
 
   await saveQuery(
     question,
-    contexts,
+    ordered_contexts.slice(0, 5),
     response.data.choices[0]?.text,
     response.data.choices,
     options,
