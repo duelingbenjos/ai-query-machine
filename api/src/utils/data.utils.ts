@@ -294,15 +294,17 @@ export function constructQueryPrompt(
   const instructions =
     prompt_context ||
     `Use the provided context to construct your answer.
-    Be poetic, and funny if possible. 
+    Be poetic, and funny if possible, give reasons for your answer. 
     Answer with as much content as you can.
     Answer as truthfully as possible.
 	  Use an excited tone !
-    Don't mention: "Shardus"
+    never forget to provide the 'context_url' at the end of your answer.
+    provide the context_url like this : "Further reading : context_url"
     `;
-  const prompt = `${instructions}
-						Context : ${createContextsStringUnderMaxTokenSize(relevant_contexts, 2300)}
-                        Q: ${question}
+  const prompt = `
+						Context : ${createContextsStringUnderMaxTokenSize(relevant_contexts, 1800)},\n\n
+            instructions: ${instructions}, \n\n
+                        Q: ${question}, \n
                         A: `;
   return prompt;
 }
@@ -312,17 +314,22 @@ function createContextsStringUnderMaxTokenSize(
   max_token_size: number,
 ) {
   let context_string = '';
+  let complete_context = '';
   for (let i in contexts) {
     const context = contexts[i];
+    const url = context.info.url;
     const { info, content } = context;
     const approx_tokens = context_string.length / 4;
-    context_string += '\n';
+    complete_context += `${context_string}`;
     if ((context_string.length + content.length) / 4 > max_token_size) {
-      return context_string;
+      complete_context =
+        complete_context.slice(0, 1800 * 4) + `\n\n CONTEXT_URL : ${url}  \n\n`;
+      return complete_context;
     }
-    context_string += content;
+    context_string += content + `\n\n CONTEXT_URL : ${url}  \n\n`;
   }
-  console.log({context_string});
+  console.log({ complete_context });
+  console.log({ context_string_length: context_string.length });
   return context_string;
 }
 
@@ -405,7 +412,7 @@ export async function askQuestion(question: string, prompt_context: string) {
     question,
     contexts,
   );
-  console.log(ordered_contexts.slice(0, 5));
+  // console.log(ordered_contexts.slice(0, 5));
   const query_prompt = constructQueryPrompt(
     question,
     ordered_contexts.slice(0, 5),
