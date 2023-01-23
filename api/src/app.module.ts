@@ -13,7 +13,7 @@ import { QueryResponseEntity } from './entities/query.entity';
     }),
     TypeOrmModule.forRoot({
       type: 'sqlite',
-      database: 'test.sqlite',
+      database: 'db.sqlite',
       entities: [QueryResponseEntity],
       synchronize: true,
     }),

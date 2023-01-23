@@ -293,7 +293,8 @@ export function constructQueryPrompt(
 ) {
   const context_string =
     prompt_context ||
-    `The provided contexts are from Lamden's blog. 
+    `Use the provided context to construct your answer.
+    Be poetic, and funny if possible. 
     Answer with as much content as you can.
     Answer as truthfully as possible.
 	  Use an excited tone !
