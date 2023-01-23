@@ -1,3 +1,5 @@
 dist
 node_modules
 ecosystem.config.js
+*.sqlite
+dev.config.ts
