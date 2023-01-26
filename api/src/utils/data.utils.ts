@@ -3,6 +3,7 @@ import axios from 'axios';
 import * as fs from 'fs';
 import config from '../dev.config';
 import { saveQuery } from '../entities/query.entity';
+import { I_ArticleListResponse, I_ArticleInfo, I_ArticleInfoAndContent, I_ArticleJson, I_ArticleData, I_Context } from './data.types';
 const similarity = require('compute-cosine-similarity');
 
 async function getArticleIdListFromMedium(from: string) {
@@ -37,56 +38,6 @@ async function getAllArticleIdsFromMedium(
     list.push(...publication_articles);
     return getAllArticleIdsFromMedium(to, list);
   }
-}
-
-export interface I_ArticleListResponse {
-  publication_articles: string[];
-  to: string;
-  from: string;
-  publication_id: string;
-}
-
-export interface I_ArticleInfo {
-  id: string;
-  tags: string[];
-  claps: number;
-  last_modified_at: string;
-  published_at: string;
-  url: string;
-  image_url: string;
-  lang: string;
-  publication_id: string;
-  word_count: number;
-  title: string;
-  reading_time: number;
-  responses_count: number;
-  voters: number;
-  topics: string[];
-  author: string;
-  subtitle: string;
-}
-
-export type T_ArticleContent = string;
-
-export interface I_ArticleInfoAndContent {
-  info: I_ArticleInfo;
-  content: T_ArticleContent;
-}
-
-export interface I_ArticleData extends I_ArticleInfoAndContent {
-  info: I_ArticleInfo;
-  content: T_ArticleContent;
-  embedding?: number[];
-}
-
-export interface I_ArticleJson {
-  [key: string]: I_ArticleData;
-}
-
-export interface I_Context {
-  info: I_ArticleInfo;
-  content: T_ArticleContent;
-  similarity: number;
 }
 
 export async function getArticleContent(
@@ -295,11 +246,11 @@ export function constructQueryPrompt(
     prompt_context ||
     `Use the provided context to construct your answer.
     Be poetic, and funny if possible, give reasons for your answer. 
-    Answer with as much content as you can.
     Answer as truthfully as possible.
 	  Use an excited tone !
-    never forget to provide the 'context_url' at the end of your answer.
+    never forget to provide the 'context_url' at the end of your answer, if one is provided.
     provide the context_url like this : "Further reading : context_url"
+    prioritise context with most recent date.
     `;
   const prompt = `
 						Context : ${createContextsStringUnderMaxTokenSize(relevant_contexts, 1800)},\n\n
@@ -318,12 +269,14 @@ function createContextsStringUnderMaxTokenSize(
   for (let i in contexts) {
     const context = contexts[i];
     const url = context.info.url;
+    const date = context.info.published_at;
     const { info, content } = context;
     const approx_tokens = context_string.length / 4;
     complete_context += `${context_string}`;
     if ((context_string.length + content.length) / 4 > max_token_size) {
       complete_context =
-        complete_context.slice(0, 1800 * 4) + `\n\n CONTEXT_URL : ${url}  \n\n`;
+        complete_context.slice(0, 1800 * 4) +
+        `\n\n CONTEXT_URL : ${url}  \n DATE: ${date} \n\n}`;
       console.log({ complete_context });
       return complete_context;
     }
@@ -332,15 +285,6 @@ function createContextsStringUnderMaxTokenSize(
   console.log({ complete_context });
   console.log({ context_string_length: context_string.length });
   return context_string;
-}
-
-export async function getCompletion(options: any) {
-  try {
-    return await openai.createCompletion(options);
-  } catch (err: any) {
-    console.log(err.message);
-    throw err;
-  }
 }
 
 function processArticles(article_lists: I_ArticleListResponse[]) {
@@ -358,7 +302,7 @@ function processArticles(article_lists: I_ArticleListResponse[]) {
   return unique_articles;
 }
 
-async function syncArticleInfoAndContent(
+export async function syncArticleInfoAndContent(
   article_lists: I_ArticleListResponse[],
 ) {
   const articles_ids = processArticles(article_lists);
@@ -378,7 +322,7 @@ async function syncArticleInfoAndContent(
   writeJsonToFile(json);
 }
 
-async function createEmbeddingsForArticlesAndContent() {
+export async function createEmbeddingsForArticlesAndContent() {
   const json_data = loadJsonDataFromFile();
   const articles = Object.keys(json_data);
   for (const article of articles) {
@@ -427,7 +371,7 @@ export async function askQuestion(question: string, prompt_context: string) {
     presence_penalty: 0,
     model: COMPLETIONS_MODEL,
   };
-  const response: any = await getCompletion(options);
+  const response: any = await openai.createCompletion(options);
   console.log({ choices: response.data.choices });
 
   await saveQuery(
@@ -449,4 +393,10 @@ function checkJsonEmbeddingExists() {
       console.log(`Article ${article} does not have an embedding`);
     }
   }
+}
+
+export async function syncArticleIdsAndContent() {
+  const ids = await getAllArticleIdsFromMedium()
+  const articles_and_content = await getArticleContentAndInfo(ids)
+
 }

@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { ApiParam, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AppService } from './app.service';
+import { QueryResponseEntity } from './entities/query.entity';
 
 class AskQuestionDto {
   @ApiProperty()
@@ -30,6 +31,15 @@ export class AppController {
       if (question.length > 200) throw 'Question too long';
       if (context && context.length > 200) throw 'Context too long';
       return await this.appService.askQuestion(question, context);
+    } catch (err) {
+      return new HttpException(err, 500);
+    }
+  }
+
+  @Get('responses')
+  async getResponses(): Promise<QueryResponseEntity[] | HttpException> {
+    try {
+      return await this.appService.getResponses();
     } catch (err) {
       return new HttpException(err, 500);
     }
