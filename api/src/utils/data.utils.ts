@@ -273,7 +273,7 @@ export function constructQueryPrompt(
 	  Use an excited tone !
     never forget to provide the 'context_url' at the end of your answer, if one is provided provide the context_url like this : "Further reading : context_url".
     prioritise context with most recent date.
-    Today's date is ${todaysDate()}.
+    Today's date is ${todaysDate()}. Do not refer to dates in the past as the future
     `;
   const prompt = `
 						Context : ${createContextsStringUnderMaxTokenSize(relevant_contexts, 1800)},\n\n
