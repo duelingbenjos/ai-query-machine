@@ -1,3 +1,6 @@
+
 export function todaysDate() {
-  return new Date().toISOString().split('T')[0];
+  const date = new Date();
+  const options: any = { year: 'numeric', month: 'long', day: 'numeric' };
+  return date.toLocaleDateString('en-US', options);
 }
