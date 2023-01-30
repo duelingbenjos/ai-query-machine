@@ -3,7 +3,16 @@ import axios from 'axios';
 import * as fs from 'fs';
 import config from '../dev.config';
 import { saveQuery } from '../entities/query.entity';
-import { I_ArticleListResponse, I_ArticleInfo, I_ArticleInfoAndContent, I_ArticleJson, I_ArticleData, I_Context } from './data.types';
+import {
+  I_ArticleListResponse,
+  I_ArticleInfo,
+  I_ArticleInfoAndContent,
+  I_ArticleJson,
+  I_ArticleData,
+  I_Context,
+} from './data.types';
+import { isArray } from 'util';
+import { todaysDate } from './misc.utils';
 const similarity = require('compute-cosine-similarity');
 
 async function getArticleIdListFromMedium(from: string) {
@@ -25,19 +34,32 @@ async function getArticleIdListFromMedium(from: string) {
 }
 
 async function getAllArticleIdsFromMedium(
-  from_date: string = '2020-01-01',
+  from_date: string = '2023-26-01',
   list: string[] = [],
 ) {
   const articleListResponse: I_ArticleListResponse =
     await getArticleIdListFromMedium(from_date);
   const { publication_articles, to, from, publication_id } =
     articleListResponse;
-  if (publication_articles.length === 0) {
+  console.log({ publication_articles, to, from, publication_id });
+  if (!isArray(publication_articles) || publication_articles.length === 0) {
     return list;
   } else {
     list.push(...publication_articles);
     return getAllArticleIdsFromMedium(to, list);
   }
+}
+
+async function getMostRecentArticleIdsFromMedium(
+  from_date: string = '2023-26-01',
+  list: string[] = [],
+) {
+  const articleListResponse: I_ArticleListResponse =
+    await getArticleIdListFromMedium(from_date);
+  const { publication_articles, to, from, publication_id } =
+    articleListResponse;
+  console.log({ publication_articles, to, from, publication_id });
+  return publication_articles;
 }
 
 export async function getArticleContent(
@@ -91,6 +113,7 @@ export function trimStringAfterMatch(str: string, match: string): string {
 export async function getArticleContentAndInfo(
   article_id: string,
 ): Promise<I_ArticleInfoAndContent> {
+  console.log(`Getting article content and info for ${article_id}...`);
   let { content } = await getArticleContent(article_id);
   content = trimStringAfterMatch(content, 'TOTALS');
   content = replaceNewLineWithSpace(content);
@@ -248,9 +271,9 @@ export function constructQueryPrompt(
     Be poetic, and funny if possible, give reasons for your answer. 
     Answer as truthfully as possible.
 	  Use an excited tone !
-    never forget to provide the 'context_url' at the end of your answer, if one is provided.
-    provide the context_url like this : "Further reading : context_url"
+    never forget to provide the 'context_url' at the end of your answer, if one is provided provide the context_url like this : "Further reading : context_url".
     prioritise context with most recent date.
+    Today's date is ${todaysDate()}.
     `;
   const prompt = `
 						Context : ${createContextsStringUnderMaxTokenSize(relevant_contexts, 1800)},\n\n
@@ -302,10 +325,8 @@ function processArticles(article_lists: I_ArticleListResponse[]) {
   return unique_articles;
 }
 
-export async function syncArticleInfoAndContent(
-  article_lists: I_ArticleListResponse[],
-) {
-  const articles_ids = processArticles(article_lists);
+export async function syncArticleInfoAndContent() {
+  const articles_ids = await getMostRecentArticleIdsFromMedium();
   let json = {};
   const file_exists = checkIfFileExists('../data/medium_articles.json');
 
@@ -396,7 +417,6 @@ function checkJsonEmbeddingExists() {
 }
 
 export async function syncArticleIdsAndContent() {
-  const ids = await getAllArticleIdsFromMedium()
-  const articles_and_content = await getArticleContentAndInfo(ids)
-
+  const ids = await getAllArticleIdsFromMedium();
+  const articles_and_content = await getArticleContentAndInfo(ids);
 }
